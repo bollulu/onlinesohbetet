@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Sohbet</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial; background:#111; color:#fff; }
+        #stories img { width:60px; height:60px; border-radius:50%; margin:5px; }
+        #messages { height:300px; overflow-y:auto; border:1px solid #444; padding:5px; }
+        input { width:80%; }
+    </style>
+</head>
+<body>
+
+<h3>Merhaba {{ user.username }}</h3>
+<a href="/logout">Çıkış</a>
+
+<hr>
+
+<h4>Hikayeler</h4>
+<input type="file" id="storyFile">
+<button onclick="addStory()">+</button>
+<div id="stories"></div>
+
+<hr>
+
+<h4>Mesajlar</h4>
+<div id="messages"></div>
+<input id="msg">
+<button onclick="sendMsg()">Gönder</button>
+
+<script>
+const socket = io();
+
+socket.on("messages", msgs => {
+    msgs.forEach(m => addMsg(m.user, m.text, m.time));
+});
+
+socket.on("new_message", m => {
+    addMsg(m.user, m.text, m.time);
+});
+
+socket.on("stories", data => {
+    document.getElementById("stories").innerHTML = "";
+    for (let user in data) {
+        let img = document.createElement("img");
+        img.src = data[user][0];
+        document.getElementById("stories").appendChild(img);
+    }
+});
+
+function sendMsg() {
+    const text = document.getElementById("msg").value;
+    socket.emit("send_message", { text });
+    document.getElementById("msg").value = "";
+}
+
+function addMsg(u,t,tm) {
+    document.getElementById("messages").innerHTML +=
+        `<div><b>${u}</b>: ${t} <small>${tm}</small></div>`;
+}
+
+function addStory() {
+    const f = document.getElementById("storyFile").files[0];
+    const r = new FileReader();
+    r.onload = () => {
+        socket.emit("add_story", { content: r.result });
+    };
+    r.readAsDataURL(f);
+}
+</script>
+
+</body>
+</html>
